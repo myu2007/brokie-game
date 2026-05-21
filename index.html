@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>$BROKIE • Подъезд</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; }
+    html,body { width:100%; height:100%; overflow:hidden; background:#0f0f0f; font-family:'Oswald',sans-serif; touch-action:manipulation; }
+    #game-container { display:flex; flex-direction:column; width:100%; height:100%; max-width:450px; margin:0 auto; background:#2a2a2a; position:relative; touch-action:manipulation; }
+    #screen { flex:1; position:relative; overflow:hidden; }
+    #background { position:absolute; top:0; left:0; width:100%; height:100%; background-image:url('./background_brokie.png'); background-size:cover; background-position:center; background-repeat:no-repeat; pointer-events:none; }
+    #frog-area { position:absolute; top:60%; left:50%; transform:translate(-50%,-50%); width:250px; height:350px; cursor:pointer; touch-action:none; }
+    #frog-full { width:100%; height:100%; object-fit:contain; pointer-events:none; }
+    #maloy-container { position:absolute; bottom:12%; right:4%; width:140px; height:210px; z-index:5; pointer-events:none; display:none; }
+    #maloy-img { width:100%; height:100%; object-fit:contain; }
+    #maloy-speech { position:absolute; background:rgba(0,0,0,0.75); color:#ffd700; font-size:11px; padding:6px 10px; border-radius:12px; max-width:160px; text-align:center; z-index:6; display:none; pointer-events:none; font-family:'Oswald',sans-serif; border:1px solid #ffd700; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:4px; }
+    #hud { position:absolute; top:15px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:flex-start; color:white; font-weight:bold; z-index:10; pointer-events:none; }
+    #logo-container { display:flex; align-items:center; gap:10px; pointer-events:auto; cursor:pointer; }
+    #logo-img { height:60px; width:auto; }
+    #logo-text { font-size:34px; font-weight:900; letter-spacing:1px; color:#ffd700; text-shadow:2px 2px 4px rgba(0,0,0,0.7); white-space:nowrap; }
+    #cash-counter { font-size:16px; font-weight:700; color:#ffd700; text-shadow:1px 1px 3px rgba(0,0,0,0.7); margin-top:2px; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:10px; display:inline-block; }
+    #rank-area { display:flex; flex-direction:column; align-items:center; position:absolute; left:50%; transform:translateX(-50%); top:70px; width:100%; pointer-events:none; }
+    #rank { font-size:14px; color:#ffd700; background:#1a1a1a; padding:4px 12px; border-radius:20px; white-space:nowrap; display:inline-block; margin:0 auto; }
+    #rank-description { font-size:11px; color:#aaa; margin-top:4px; text-align:center; max-width:250px; }
+    #counter { font-size:28px; font-weight:400; color:#f0c040; }
+    #energy-section { position:absolute; bottom:120px; left:20px; right:20px; z-index:10; }
+    .energy-row { display:flex; align-items:center; margin-bottom:6px; }
+    .energy-label { color:#ccc; font-size:11px; width:65px; text-align:right; margin-right:8px; }
+    .energy-bar-out { flex:1; height:14px; background:#222; border-radius:10px; border:1px solid #555; overflow:hidden; }
+    .energy-bar-in { width:100%; height:100%; border-radius:8px; transition:width 0.2s; }
+    #energy-bar-in { background:linear-gradient(90deg,#ff8800,#ffd700); }
+    #bot-energy-bar-in { background:linear-gradient(90deg,#777,#bbb); }
+    #actions { position:absolute; bottom:20px; left:20px; right:20px; display:flex; justify-content:center; align-items:flex-end; gap:20px; z-index:10; }
+    .action-wrapper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .action-icon { width:48px; height:48px; cursor:pointer; transition:transform 0.1s, opacity 0.2s; object-fit:contain; }
+    .action-icon:active { transform:scale(0.95); }
+    .action-icon.disabled { opacity:0.5; }
+    .action-caption { color:#ccc; font-size:11px; }
+    .dust-timer-text { color:#ccc; font-size:11px; }
+    .energos-charges { color:#ccc; font-size:11px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; }
+    .dust-label { color:#ccc; font-size:11px; }
+    #dust-timer { color:#ccc; font-size:11px; }
+    .fly-text { position:absolute; color:#ffd700; font-weight:bold; font-size:22px; pointer-events:none; animation:flyUp 0.8s ease-out forwards; z-index:20; }
+    @keyframes flyUp { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-80px); } }
+    #tab-bar { height:60px; background:#1a1a1a; display:flex; border-top:2px solid #333; z-index:20; flex-shrink:0; }
+    .tab { flex:1; display:flex; justify-content:center; align-items:center; color:#888; font-weight:bold; font-size:14px; cursor:pointer; transition:color 0.2s, background 0.2s; }
+    .tab.active { color:#ffd700; background:#2a2a2a; border-bottom:3px solid #ffd700; }
+    .panel { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#1e1e1e; z-index:15; padding:20px; color:white; }
+    .panel.active { display:flex; flex-direction:column; }
+    .panel h3 { color:#ffd700; margin-bottom:10px; font-size:24px; }
+    .shop-tabs { display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap; }
+    .shop-tab { background:#333; color:#aaa; border:none; padding:6px 14px; border-radius:20px; font-weight:bold; cursor:pointer; }
+    .shop-tab.active { background:#ffd700; color:#1a1a1a; }
+    .shop-item { background:#2a2a2a; padding:15px; border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+    .shop-item button { background:#ffd700; color:#1a1a1a; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; cursor:pointer; }
+    .shop-item button:disabled { background:#555; color:#999; cursor:not-allowed; }
+    .shop-item button:active:not(:disabled) { background:#ffaa00; }
+    .status-text { color:#4caf50; font-weight:bold; font-size:15px; background:#1e1e1e; padding:6px 14px; border-radius:20px; }
+    .sub-upgrade { background:#222; padding:10px 15px; border-radius:10px; margin:5px 0 5px 20px; display:flex; justify-content:space-between; align-items:center; font-size:14px; }
+    .sub-upgrade button { padding:6px 14px; font-size:13px; }
+    .dealer-item { background:#111; border:1px solid #ffd700; }
+    .leaderboard-list { list-style:none; }
+    .leaderboard-list li { padding:12px 0; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; }
+    .leaderboard-list button { background:#ffd700; color:#1a1a1a; border:none; padding:4px 10px; border-radius:15px; font-weight:bold; cursor:pointer; font-size:12px; }
+    .leaderboard-list button:active { background:#ffaa00; }
+    #profile-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:30; justify-content:center; align-items:center; }
+    #profile-modal.active { display:flex; }
+    #profile-content { background:#1e1e1e; width:90%; max-width:400px; border-radius:20px; padding:20px; color:white; text-align:center; max-height:80%; overflow-y:auto; }
+    #profile-close { position:absolute; top:10px; right:20px; font-size:24px; cursor:pointer; color:#ffd700; }
+    .profile-stat { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #333; }
+    .achievement { background:#333; border-radius:10px; padding:8px 12px; margin:4px 0; font-size:14px; display:flex; align-items:center; gap:8px; }
+    .achievement.locked { opacity:0.4; }
+    .season-wrapper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .season-icon { width:48px; height:48px; background:linear-gradient(135deg,#1a1a1a,#2a2a2a); border:1px solid #ffd700; border-radius:15px; color:#ffd700; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:14px; cursor:pointer; }
+    #season-scroll-container { flex:1; overflow-y:auto; display:flex; gap:5px; position:relative; margin-bottom:10px; }
+    .season-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .season-reward-item { background:#2a2a2a; padding:8px 5px; border-radius:10px; text-align:center; font-size:11px; color:#aaa; width:100%; }
+    .season-reward-item.unlocked { border:1px solid #ffd700; color:#ffd700; }
+    .season-reward-item.vip-item { background:#3a2a00; border-left:3px solid gold; }
+    .season-headers { display:flex; gap:5px; margin-bottom:5px; font-weight:bold; }
+    .season-headers span { flex:1; text-align:center; }
+    #shop-cash-counter { color:#e0c070; font-size:20px; font-weight:700; text-align:center; margin-bottom:15px; }
+    #fomo-message { color:#ff6666; font-size:12px; text-align:center; margin-top:5px; background:rgba(0,0,0,0.7); padding:4px; border-radius:8px; }
+    .player-rank-card { background:#2a2a2a; border:1px solid #ffd700; border-radius:12px; padding:12px; margin-top:15px; text-align:center; }
+    .player-rank-card .rank-title { color:#ffd700; font-size:16px; font-weight:bold; }
+    .player-rank-card .rank-detail { color:#ccc; font-size:14px; margin:4px 0; }
+    .player-rank-card .rank-psycho { color:#ff6666; font-size:13px; margin-top:6px; }
+    #season-progress-container { margin-bottom:15px; padding:0 5px; }
+    #season-horizontal-fill { width:0%; height:100%; background:linear-gradient(90deg,#ffd700,#ffaa00); border-radius:12px; transition:width 0.3s; }
+    #name-edit-section { display:flex; gap:6px; margin-top:5px; justify-content:center; align-items:center; }
+    #name-edit-section input { flex:1; padding:6px 10px; border-radius:10px; border:1px solid #555; background:#222; color:white; font-family:'Oswald',sans-serif; font-size:14px; }
+    #name-edit-section button { background:#ffd700; color:#1a1a1a; border:none; padding:6px 14px; border-radius:10px; font-weight:bold; cursor:pointer; white-space:nowrap; }
+    .edit-icon { font-size:10px; vertical-align:middle; margin-left:4px; color:#ffd700; cursor:pointer; }
+    #rank-progress-block { margin:10px 0; border-top:1px solid #333; padding-top:10px; }
+    #rank-progress-text { font-size:12px; color:#ffd700; margin-bottom:4px; }
+    #rank-progress-bar { width:100%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
+    #rank-progress-fill { width:0%; height:100%; background:linear-gradient(90deg,#ffd700,#ffaa00); border-radius:5px; transition:width 0.3s; }
+    #rank-next-text { font-size:10px; color:#aaa; margin-top:2px; text-align:right; }
+    .debt-item { background:#3a0000; border:1px solid #ff4444; }
+    #intro-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:100; flex-direction:column; align-items:center; justify-content:center; }
+    #intro-image { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background:black; }
+    #intro-text { position:relative; z-index:2; color:#ffd700; font-size:14px; margin:20px 20px 80px; text-align:left; max-width:90%; font-family:'Courier New',monospace; min-height:80px; white-space:pre-wrap; text-shadow:2px 2px 0 #000; }
+    #intro-next { position:relative; z-index:2; display:none; background:#ffd700; color:#1a1a1a; border:none; padding:8px 28px; border-radius:15px; font-weight:bold; font-size:14px; cursor:pointer; align-self:center; }
+    /* КОЛЕСО */
+    #wheel-panel { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#1e1e1e; z-index:50; flex-direction:column; align-items:center; justify-content:flex-start; padding:20px; }
+    #wheel-panel.active { display:flex; }
+    #wheel-container { display:flex; align-items:flex-start; gap:10px; margin-top:10px; }
+    #wheel-canvas { width:300px; height:300px; }
+    #wheel-arrow { width:0; height:0; border-top:15px solid transparent; border-bottom:15px solid transparent; border-right:20px solid #ff0000; margin-top:140px; }
+    #wheel-result { color:#ffd700; font-size:18px; margin-top:10px; min-height:30px; text-align:center; }
+    #wheel-spins-left { color:#ccc; font-size:14px; margin-top:10px; }
+    #wheel-spin-btn { background:#ffd700; color:#1a1a1a; border:none; padding:12px 30px; border-radius:20px; font-weight:bold; font-size:18px; cursor:pointer; margin-top:10px; }
+    #wheel-spin-btn:disabled { background:#555; color:#999; cursor:not-allowed; }
+    #wheel-buy-btn { background:#ffaa00; color:#1a1a1a; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; font-size:14px; cursor:pointer; margin-top:5px; }
+    #wheel-close { position:absolute; top:10px; right:20px; font-size:24px; cursor:pointer; color:#ffd700; }
+    /* СЮЖЕТНЫЕ СЦЕНЫ */
+    #scene-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:200; flex-direction:column; align-items:center; justify-content:center; }
+    #scene-modal.active { display:flex; }
+    #scene-image { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; background:black; }
+    #scene-text { position:relative; z-index:2; color:#ffd700; font-size:16px; margin:20px 20px 80px; text-align:left; max-width:90%; font-family:'Courier New',monospace; min-height:80px; white-space:pre-wrap; text-shadow:2px 2px 0 #000; }
+    #scene-next { position:relative; z-index:2; display:none; background:#ffd700; color:#1a1a1a; border:none; padding:8px 28px; border-radius:15px; font-weight:bold; font-size:14px; cursor:pointer; align-self:center; }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <div id="screen">
+    <div id="intro-modal">
+      <img id="intro-image" src="">
+      <p id="intro-text"></p>
+      <button id="intro-next" onclick="nextIntroSlide()">Далее</button>
+    </div>
+    <!-- СЮЖЕТНЫЕ СЦЕНЫ -->
+    <div id="scene-modal">
+      <img id="scene-image" src="">
+      <p id="scene-text"></p>
+      <button id="scene-next" onclick="nextSceneSlide()">Далее</button>
+    </div>
+    <div id="panel-home" class="panel active">
+      <div id="background"></div>
+      <div id="hud">
+        <div id="logo-container">
+          <img id="logo-img" src="./logo_brokie.png" alt="Лого">
+          <span id="logo-text">$BROKIE</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;">
+          <span id="counter">$0</span>
+          <span id="cash-counter">💵 0</span>
+        </div>
+      </div>
+      <div id="rank-area">
+        <span id="rank">Нищеброд</span>
+        <div id="rank-description"></div>
+        <div id="fomo-message"></div>
+      </div>
+      <div id="frog-area"><img id="frog-full" src="./brokie_hoodie_neutral.png" alt="BROKIE"></div>
+      <div id="maloy-container">
+        <img id="maloy-img" src="./maloy.png" alt="Малой">
+        <div id="maloy-speech"></div>
+      </div>
+      <div id="energy-section">
+        <div class="energy-row"><span class="energy-label">Ты</span><div class="energy-bar-out"><div id="energy-bar-in" class="energy-bar-in"></div></div><span id="energy-text" style="color:#ccc;font-size:11px;margin-left:6px;width:45px;">100%</span></div>
+        <div class="energy-row" id="bot-energy-row" style="display:none;"><span class="energy-label">Малой</span><div class="energy-bar-out"><div id="bot-energy-bar-in" class="energy-bar-in"></div></div><span id="bot-energy-text" style="color:#ccc;font-size:11px;margin-left:6px;width:45px;">0/50</span></div>
+      </div>
+      <div id="actions">
+        <div class="season-wrapper">
+          <div class="season-icon" onclick="switchTab('season')">СЕЗОН</div>
+          <span id="season-level-badge" style="color:#ffd700;font-size:12px;background:rgba(0,0,0,0.6);padding:2px 8px;border-radius:10px;">Ур.0</span>
+        </div>
+        <div class="action-wrapper"><img id="energos-icon" class="action-icon" src="./btn_energos.png"><span id="energos-charges" class="energos-charges">x3</span></div>
+        <div class="action-wrapper">
+          <img id="dust-icon" class="action-icon" src="./btn_dust.png">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span id="dust-label" class="dust-label">Пыль (x5)</span>
+            <span id="dust-count" class="energos-charges">x0</span>
+          </div>
+          <span id="dust-timer" class="dust-timer-text"></span>
+        </div>
+        <div class="action-wrapper" onclick="openWheel()">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#ffd700,#ffaa00);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;">🎡</div>
+          <span style="color:#ffd700;font-size:11px;">Стрелка</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПАНЕЛЬ КОЛЕСА -->
+    <div id="wheel-panel">
+      <span id="wheel-close" onclick="closeWheel()">✕</span>
+      <h3 style="color:#ffd700;margin-bottom:10px;">Стрелка</h3>
+      <div id="wheel-container">
+        <canvas id="wheel-canvas" width="600" height="600"></canvas>
+        <div id="wheel-arrow"></div>
+      </div>
+      <div id="wheel-result"></div>
+      <div id="wheel-spins-left"></div>
+      <button id="wheel-spin-btn" onclick="spinWheel()">Крутить</button>
+      <button id="wheel-buy-btn" onclick="buySpin()">Купить прокрутку (1⭐)</button>
+    </div>
+
+    <!-- МАГАЗИН -->
+    <div id="panel-shop" class="panel">
+      <div id="shop-cash-counter">💵 0</div>
+      <h3>Дела</h3>
+      <div class="shop-tabs">
+        <button class="shop-tab active" onclick="switchShopTab('boosts')">Усиления</button>
+        <button class="shop-tab" onclick="switchShopTab('skins')">Шмот</button>
+        <button class="shop-tab" onclick="switchShopTab('hats')">Хата</button>
+        <button class="shop-tab" onclick="switchShopTab('referral')">Братан</button>
+        <button class="shop-tab" onclick="switchShopTab('dealer')">Дилер</button>
+        <button class="shop-tab" onclick="switchShopTab('debt')">Долги</button>
+      </div>
+      <div id="shop-section-boosts" class="shop-section" style="overflow-y:auto;flex:1;display:block;">
+        <div class="shop-item" style="flex-direction:column;align-items:flex-start;gap:10px;">
+          <div style="display:flex;justify-content:space-between;width:100%;"><div><b>🤖 Малой</b><br><small>Твой личный шнырь.</small></div><div id="maloy-action"></div></div>
+          <div id="maloy-sub-upgrades" style="display:none;width:100%;">
+            <div class="sub-upgrade"><span>Бак</span><span>Ур. <span id="sub-bank-level">1</span></span><button onclick="buySubUpgrade('subBank')">💰 <span id="sub-bank-cost">200</span></button></div>
+            <div class="sub-upgrade"><span>Восст.</span><span>Ур. <span id="sub-regen-level">1</span></span><button onclick="buySubUpgrade('subRegen')">💰 <span id="sub-regen-cost">300</span></button></div>
+            <div class="sub-upgrade"><span>Мощь</span><span>Ур. <span id="sub-power-level">1</span></span><button onclick="buySubUpgrade('subPower')">💰 <span id="sub-power-cost">400</span></button></div>
+            <div id="maloy-suit-section" style="display:none;margin-top:8px;"><button id="maloy-suit-toggle" class="maloy-suit-toggle" onclick="toggleMaloySuit()">Костюм: свой стиль</button></div>
+          </div>
+        </div>
+        <div class="shop-item"><div><b>💪 Братва</b><br><small>Ур. <span id="tap-level">0</span> | Сила: +<span id="tap-current">1</span></small></div><button onclick="buyUpgrade('tap')">💰 <span id="tap-cost">500</span></button></div>
+        <div class="shop-item"><div><b>🛡️ Крыша</b><br><small>Ур. <span id="roof-level">0</span> | Доход: <span id="roof-current">0</span>/сек</small></div><button onclick="buyUpgrade('roof')">💰 <span id="roof-cost">1000</span></button></div>
+        <div class="shop-item"><div><b>🎯 Стрелка</b><br><small>Ур. <span id="crit-level">0</span> | Крит: <span id="crit-current">0</span>%</small></div><button onclick="buyUpgrade('crit')">💰 <span id="crit-cost">2000</span></button></div>
+        <div class="shop-item"><div><b>⚡ Точка</b><br><small>Ур. <span id="energy-level">0</span> | Энергия: <span id="energy-current">100</span></small></div><button onclick="buyUpgrade('energyMax')">💰 <span id="energy-cost">200</span></button></div>
+      </div>
+      <div id="shop-section-skins" class="shop-section" style="display:none;overflow-y:auto;flex:1;">
+        <div class="shop-item"><div><b>Серое худи</b></div><button onclick="applySkin('hoodie')">Применить</button></div>
+        <div class="shop-item"><div><b>Красная рубашка</b><br><small>Доступно с Хаслера</small></div><button id="btn-skin-redshirt" disabled>💰 50 000</button></div>
+        <div class="shop-item"><div><b>Бордовая олимпийка</b><br><small>Доступно с Барыги</small></div><button id="btn-skin-tracksuit" disabled>💰 250 000</button></div>
+        <div class="shop-item"><div><b>Белый костюм</b><br><small>Доступно с Босса</small></div><button id="btn-skin-whitesuit" disabled>💰 1 000 000</button></div>
+        <div class="shop-item"><div><b>Балаклава</b></div><button id="btn-skin-balaclava" onclick="purchaseSkin('balaclava')">💰 10 000</button></div>
+        <div class="shop-item" id="skin-item-golden" style="display:none;"><div><b>Золотой лягушонок</b><br><small>VIP-награда</small></div><button onclick="applySkin('golden_frog')">Применить</button></div>
+        <div class="shop-item" id="skin-item-king" style="display:none;"><div><b>Крипто-Король</b><br><small>Ранг 500М</small></div><button onclick="applySkin('king')">Применить</button></div>
+      </div>
+      <div id="shop-section-hats" class="shop-section" style="display:none;overflow-y:auto;flex:1;">
+        <div class="shop-item"><div><b>Подъезд</b></div><button onclick="applyHat('stairwell')">Применить</button></div>
+        <div class="shop-item"><div><b>Офис</b><br><small>Доступно с Хаслера</small></div><button id="btn-hat-office" disabled>💰 75 000</button></div>
+        <div class="shop-item"><div><b>Пентхаус</b><br><small>Доступно с Босса</small></div><button id="btn-hat-penthouse" disabled>💰 1 500 000</button></div>
+      </div>
+      <div id="shop-section-referral" class="shop-section" style="display:none;overflow-y:auto;flex:1;">
+        <h4>Привести Братана</h4>
+        <div class="shop-item" style="flex-direction: column; gap: 10px;">
+          <div><b>Твой код:</b><br><span id="ref-code-display"></span></div>
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <button onclick="copyReferralLink()" style="width: 100%;">Копировать</button>
+            <button id="ref-share-btn" onclick="shareReferralLink()" style="width: 100%;">Поделиться</button>
+          </div>
+        </div>
+        <div class="shop-item" style="flex-direction:column;gap:10px;"><input id="friend-code-input" placeholder="Код друга" style="padding:8px;background:#333;color:white;border:none;border-radius:10px;width:100%;"><button onclick="activateFriendCode()">Активировать</button></div>
+        <p id="referral-psycho"></p>
+      </div>
+      <div id="shop-section-dealer" class="shop-section" style="display:none;overflow-y:auto;flex:1;">
+        <h4>Налик</h4>
+        <div class="shop-item dealer-item"><div><b>100 Налика</b></div><button onclick="buyDealer('cash100')">⭐ 5</button></div>
+        <div class="shop-item dealer-item"><div><b>500 Налика</b></div><button onclick="buyDealer('cash500')">⭐ 20</button></div>
+        <div class="shop-item dealer-item"><div><b>1500 Налика</b></div><button onclick="buyDealer('cash1500')">⭐ 50</button></div>
+        <div class="shop-item dealer-item"><div><b>5000 Налика</b></div><button onclick="buyDealer('cash5000')">⭐ 150</button></div>
+        <h4>Товары за Налик</h4>
+        <div class="shop-item dealer-item"><div><b>Пакетик Пыли</b></div><button onclick="buyDealer('dust1')">💰 100</button></div>
+        <div class="shop-item dealer-item"><div><b>Пачка Пыли (5 шт.)</b></div><button onclick="buyDealer('dust5')">💰 400</button></div>
+        <div class="shop-item dealer-item"><div><b>VIP-сундук</b></div><button onclick="buyDealer('vip')">💰 800</button></div>
+        <div class="shop-item dealer-item"><div><b>Премиум «Босс»</b></div><button onclick="buyDealer('premium')">💰 1500</button></div>
+      </div>
+      <div id="shop-section-debt" class="shop-section" style="display:none;overflow-y:auto;flex:1;">
+        <h4 style="color:#ff6666;margin-bottom:10px;">Кредит у Братвы</h4>
+        <p style="color:#ff4444;margin-bottom:10px;">Верни с процентами, или попадёшь на счётчик.</p>
+        <div id="debt-calculator">
+          <div style="margin-bottom:15px;">
+            <label for="debt-range" style="display:block;margin-bottom:5px;color:#ffd700;">Сумма займа: <span id="debt-amount-display">100</span> Н</label>
+            <input type="range" id="debt-range" min="100" max="50000" value="100" step="100" oninput="updateDebtCalculator()" style="width:100%;">
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Ты получишь: <b id="debt-get">100</b> Н</span><span>К возврату: <b id="debt-return">110</b> Н</span></div>
+          <div style="margin-bottom:10px;"><span>Ставка: <b id="debt-percent">10</b>%</span><span style="margin-left:15px;">Срок: 24 часа</span></div>
+          <button id="btn-take-debt" onclick="takeDebtNew()" style="background:#ffd700;color:#1a1a1a;border:none;padding:12px;border-radius:20px;font-weight:bold;width:100%;font-size:16px;">Занять</button>
+        </div>
+        <div id="debt-status-container" class="debt-item" style="display:none;margin-top:15px;padding:10px;border-radius:12px;text-align:center;">
+          <div id="debt-info" style="color:#ff6666;margin-bottom:10px;"></div>
+          <div id="debt-timer" style="color:#ffd700;font-size:14px;margin-bottom:10px;"></div>
+          <button id="btn-repay-debt" onclick="repayDebt()" style="background:#ffd700;color:#1a1a1a;border:none;padding:12px;border-radius:20px;font-weight:bold;width:100%;font-size:16px;display:none;">Вернуть долг</button>
+          <button id="btn-repay-coins" onclick="repayDebtWithCoins()" style="background:#ffaa00;color:#1a1a1a;border:none;padding:10px;border-radius:15px;font-weight:bold;width:100%;margin-top:8px;display:none;">Погасить монетами</button>
+          <span id="debt-penalty-warning" style="color:red;display:none;margin-top:5px;">ПРОСРОЧКА! Ты на счётчике!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ЛИДЕРБОРД -->
+    <div id="panel-leaderboard" class="panel">
+      <h3>Братва</h3>
+      <div class="shop-tabs">
+        <button class="shop-tab active" onclick="switchLeaderboardTab('top')">Топ</button>
+        <button class="shop-tab" onclick="switchLeaderboardTab('safe')">Сейф</button>
+      </div>
+      <div id="leaderboard-section-top" class="leaderboard-section" style="overflow-y:auto;flex:1;">
+        <ul class="leaderboard-list">
+          <li><span>$BROKIE_King</span><span>1 250 000</span><button onclick="showProfile('$BROKIE_King')">Досье</button></li>
+          <li><span>CryptoFrog</span><span>980 000</span><button onclick="showProfile('CryptoFrog')">Досье</button></li>
+          <li><span>HoodMoney</span><span>820 000</span><button onclick="showProfile('HoodMoney')">Досье</button></li>
+        </ul>
+        <div class="player-rank-card"><div class="rank-title">Твоё место в Топе</div><div>Позиция: <b id="player-top-rank">...</b></div><div>Баланс: <b id="player-top-coins">0</b></div><div class="rank-psycho" id="top-psycho-text"></div></div>
+      </div>
+      <div id="leaderboard-section-safe" class="leaderboard-section" style="display:none;overflow-y:auto;flex:1;">
+        <ul class="leaderboard-list">
+          <li><span>BigBoss</span><span>12 500</span><button onclick="showProfile('BigBoss')">Досье</button></li>
+          <li><span>CashKing</span><span>8 200</span><button onclick="showProfile('CashKing')">Досье</button></li>
+          <li><span>MoneyFrog</span><span>5 100</span><button onclick="showProfile('MoneyFrog')">Досье</button></li>
+        </ul>
+        <div class="player-rank-card"><div class="rank-title">Твоё место в Сейфе</div><div>Позиция: <b id="player-safe-rank">...</b></div><div>Потрачено Нала: <b id="player-safe-cash">0</b></div><div class="rank-psycho" id="safe-psycho-text"></div></div>
+      </div>
+    </div>
+
+    <!-- СЕЗОН -->
+    <div id="panel-season" class="panel" style="overflow:hidden;">
+      <h3>Босс-Сезон • Боевой Пропуск</h3>
+      <div id="vip-button-area" style="text-align:center;margin-bottom:15px;"></div>
+      <div id="season-progress-container">
+        <div style="display:flex;justify-content:space-between;color:#ffd700;font-size:12px;">
+          <span>Ур. <b id="season-current-lvl">0</b></span><span>Ур. <b id="season-next-lvl">1</b></span>
+        </div>
+        <div style="width:100%;height:18px;background:#222;border-radius:12px;overflow:hidden;border:1px solid #444;"><div id="season-horizontal-fill"></div></div>
+      </div>
+      <div class="season-headers"><span style="color:#aaa;">FREE</span><span style="width:40px;"></span><span style="color:#ffd700;">VIP</span></div>
+      <div id="season-scroll-container"><div class="season-col" id="season-free-col"></div><div class="season-col" id="season-vip-col"></div></div>
+      <p style="text-align:center;color:#aaa;margin-top:10px;">Прогресс растёт при использовании Пыли</p>
+    </div>
+
+    <!-- ПРОФИЛЬ -->
+    <div id="profile-modal">
+      <div id="profile-content">
+        <span id="profile-close" onclick="closeProfile()">✕</span>
+        <h3>Досье</h3>
+        <p id="profile-nick" onclick="toggleNameEdit()">Ник: Аноним <span class="edit-icon">✎</span></p>
+        <div id="name-edit-section" style="display:none;"><input id="name-input" maxlength="16" placeholder="Введи ник"><button onclick="saveNickname()">Сохранить</button></div>
+        <p id="profile-rank">Ранг: Нищеброд</p>
+        <div id="rank-progress-block" style="display:none;">
+          <div id="rank-progress-text">Нищеброд → Хаслер</div>
+          <div id="rank-progress-bar"><div id="rank-progress-fill"></div></div>
+          <div id="rank-next-text">Осталось 50 000</div>
+        </div>
+        <p id="profile-ref-rank">Братан: Одиночка (5%)</p>
+        <p id="profile-referral-count" style="color:#ffd700; margin-top:5px;">Приглашено: 0</p>
+        <div class="profile-stat"><span>Всего тапов:</span><span id="stat-taps">0</span></div>
+        <div class="profile-stat"><span>Крит. ударов:</span><span id="stat-crits">0</span></div>
+        <div class="profile-stat"><span>Пыли нюхнуто:</span><span id="stat-dust">0</span></div>
+        <div class="profile-stat"><span>Энергоса выпито:</span><span id="stat-energos">0</span></div>
+        <div class="profile-stat"><span>Налика:</span><span id="stat-cash">0</span></div>
+        <div class="profile-stat"><span>Макс. монет:</span><span id="stat-max-coins">0</span></div>
+        <h4 style="color:#ffd700;margin-top:15px;">Титулы</h4>
+        <div id="achievements-container">
+          <div class="achievement locked" id="ach-1">Железный палец (10 000 тапов)</div>
+          <div class="achievement locked" id="ach-2">Банкир (1 000 000 монет)</div>
+          <div class="achievement locked" id="ach-3">Наркоман (100 нюхов пыли)</div>
+          <div class="achievement locked" id="ach-4">Уличный боец (100 крит. ударов)</div>
+          <div class="achievement locked" id="ach-5">Малой не спит (Малой 4 ур.)</div>
+          <div class="achievement locked" id="ach-6">Тони Монтана (Костюм + Пентхаус)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="tab-bar">
+    <div class="tab active" onclick="switchTab('home')">Хата</div>
+    <div class="tab" onclick="switchTab('shop')">Дела</div>
+    <div class="tab" onclick="switchTab('leaderboard')">Братва</div>
+  </div>
+</div>
+<script>
+// ---------- 1. TELEGRAM INIT ----------
+let tg = null;
+let isTelegram = false;
+try { if (window.Telegram && window.Telegram.WebApp) { tg = window.Telegram.WebApp; isTelegram = true; tg.ready(); tg.expand(); } } catch(e) {}
+
+// ---------- 2. ЛОКАЛИЗАЦИЯ ----------
+let translations = {};
+let currentLang = 'ru';
+async function loadTranslations(lang) {
+  try { const res = await fetch(lang + '.json'); if (!res.ok) throw new Error('no file'); translations = await res.json(); currentLang = lang; applyTranslations(); }
+  catch(e) { if (lang !== 'ru') { try { const res = await fetch('ru.json'); translations = await res.json(); currentLang = 'ru'; applyTranslations(); } catch(e2) {} } }
+}
+function applyTranslations() { document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (translations[key]) el.textContent = translations[key]; }); updateUI(); }
+function detectLanguage() { if (isTelegram && tg.initDataUnsafe?.user?.language_code) { const code = tg.initDataUnsafe.user.language_code; if (code === 'ru' || code === 'en' || code === 'zh') return code; if (code.startsWith('zh')) return 'zh'; } return 'ru'; }
+
+// ---------- 3. SKINS ----------
+const SKINS = {
+  hoodie: { neutral: './brokie_hoodie_neutral.png', pain: './brokie_hoodie_pain.png', angry: './brokie_hoodie_angry.png', high: './brokie_hoodie_high.png', dust: './brokie_hoodie_dust.png' },
+  redshirt: { neutral: './brokie_redshirt_neutral.png', pain: './brokie_redshirt_pain.png', angry: './brokie_redshirt_angry.png', high: './brokie_redshirt_high.png', dust: './brokie_redshirt_dust.png' },
+  tracksuit: { neutral: './brokie_tracksuit_neutral.png', pain: './brokie_tracksuit_pain.png', angry: './brokie_tracksuit_angry.png', high: './brokie_tracksuit_high.png', dust: './brokie_tracksuit_dust.png' },
+  whitesuit: { neutral: './brokie_whitesuit_neutral.png', pain: './brokie_whitesuit_pain.png', angry: './brokie_whitesuit_angry.png', high: './brokie_whitesuit_high.png', dust: './brokie_whitesuit_dust.png' },
+  balaclava: { neutral: './brokie_balaclava.png' },
+  golden_frog: { neutral: './brokie_golden.png' },
+  king: { neutral: './brokie_king_neutral.png' }
+};
+
+// ---------- 4. GAME STATE ----------
+let coins = 0, energy = 100, MAX_ENERGY = 100;
+let COINS_PER_TAP = 1, energosCharges = 3;
+let tapLevel = 0, autoLevel = 0, energyMaxLevel = 0, roofLevel = 0, critLevel = 0;
+let activeSkin = 'hoodie', activeHat = './background_brokie.png';
+let ownedSkins = ['hoodie'], ownedHats = ['stairwell'];
+let dustActive = false, dustSeconds = 10, dustInterval = null;
+const DUST_MULTIPLIER = 5;
+let BOT_ENERGY_MAX = 50, botEnergy = 50, superTapCost = 10, superTapReward = 1, botRegenRate = 3;
+let totalTaps = 0, totalCrits = 0, totalDust = 0, totalEnergos = 0, maxCoins = 0, totalCash = 0;
+let subBankLevel = 1, subRegenLevel = 1, subPowerLevel = 1;
+let seasonLevel = 0, seasonExperience = 0;
+const SEASON_MAX_LEVEL = 30, SEASON_XP_PER_LEVEL = 5;
+let vipActive = false;
+const VIP_COST = 1500;
+let referralCount = 0, referralPercent = 5, codeActivated = false;
+const playerId = isTelegram ? (tg.initDataUnsafe?.user?.id ?? 'BROKIE_' + Math.random().toString(36).slice(2,9)) : 'BROKIE_' + Math.random().toString(36).slice(2,9);
+let debtAmount = 0, debtPercent = 0, debtTimer = 0, debtActive = false, debtPenalty = false;
+const DEBT_DURATION = 24 * 60 * 60;
+let playerNickname = isTelegram ? (tg.initDataUnsafe?.user?.first_name || 'Аноним') : (localStorage.getItem('brokie_nick') || 'Аноним');
+let maloySuitUnlocked = false, maloySuitActive = false;
+let dustCount = 0;
+let lastMaloyPhraseTime = 0;
+if (isTelegram && tg.initDataUnsafe?.start_param) { localStorage.setItem('brokie_referrer', tg.initDataUnsafe.start_param); if (!localStorage.getItem('brokie_code_activated')) { referralCount = 1; localStorage.setItem('brokie_code_activated', 'true'); } }
+
+// ---------- 5. REWARD TABLES ----------
+const FREE_REWARDS = {
+  1:{type:'coins',value:100},2:{type:'energos',value:1},3:{type:'coins',value:150},4:{type:'dust',value:1},5:{type:'coins',value:500,extra:'profile_frame_subway'},
+  6:{type:'coins',value:200},7:{type:'energos',value:1},8:{type:'coins',value:250},9:{type:'dust',value:2},10:{type:'coins',value:750,extra:'title_bratan'},
+  11:{type:'coins',value:300},12:{type:'energos',value:2},13:{type:'coins',value:350},14:{type:'dust',value:3},15:{type:'coins',value:1500,extra:'skin_balaclava_or_coins'},
+  16:{type:'coins',value:400},17:{type:'energos',value:2},18:{type:'coins',value:450},19:{type:'dust',value:4},20:{type:'coins',value:2000,extra:'title_authority'},
+  21:{type:'coins',value:500},22:{type:'energos',value:3},23:{type:'coins',value:600},24:{type:'dust',value:5},25:{type:'coins',value:2500,extra:'vip_7_days_or_coins'},
+  26:{type:'coins',value:700},27:{type:'energos',value:3},28:{type:'coins',value:800},29:{type:'dust',value:10,extra:'skin_red_eyes'},30:{type:'coins',value:3000,extra:'bg_night_district'}
+};
+const VIP_REWARDS = {
+  1:{type:'cash',value:50,extra:'coins_200'},2:{type:'dust',value:2},3:{type:'energos',value:2},4:{type:'cash',value:100},5:{type:'skin_neon'},
+  6:{type:'dust',value:3},7:{type:'cash',value:150},8:{type:'energos',value:3},9:{type:'cash',value:200},10:{type:'cash',value:300,extra:'energy_5'},
+  11:{type:'dust',value:5},12:{type:'cash',value:250},13:{type:'energos',value:4},14:{type:'cash',value:300},15:{type:'cash',value:500,extra:'dust_10'},
+  16:{type:'dust',value:7},17:{type:'cash',value:350},18:{type:'energos',value:5},19:{type:'cash',value:400},20:{type:'maloy_skin_suit'},
+  21:{type:'dust',value:10},22:{type:'cash',value:500},23:{type:'energos',value:6},24:{type:'cash',value:600},25:{type:'skin_golden_frog'},
+  26:{type:'dust',value:15},27:{type:'cash',value:700},28:{type:'energos',value:7},29:{type:'cash',value:800},30:{type:'crown_and_title_king'}
+};
+let collectedFreeRewards = {}, collectedVipRewards = {};
+
+// ---------- 6. AUDIO ----------
+let currentBgMusic = null;
+function playMusic(hat) { if (currentBgMusic) { currentBgMusic.pause(); currentBgMusic = null; } let src = ''; if (hat === 'stairwell') src = 'sounds/bg_stairwell.mp3'; else if (hat === 'office') src = 'sounds/bg_office.mp3'; else if (hat === 'penthouse') src = 'sounds/bg_penthouse.mp3'; if (src) { currentBgMusic = new Audio(src); currentBgMusic.loop = true; currentBgMusic.volume = 0.3; currentBgMusic.play().catch(() => {}); } }
+function playSound(file) { try { new Audio('sounds/' + file).play().catch(() => {}); } catch(e) {} }
+
+// ---------- 7. SHARING ----------
+function shareReferralLink() { if (!isTelegram) { alert('Только в Telegram'); return; } const botUsername = 'BROKIE_bot'; const refLink = `https://t.me/${botUsername}?start=${playerId}`; const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=Вступай в мою банду в $BROKIE!`; tg.openTelegramLink(shareUrl); }
+function copyReferralLink() { const botUsername = 'BROKIE_bot'; const refLink = `https://t.me/${botUsername}?start=${playerId}`; navigator.clipboard.writeText(refLink).then(() => alert('Ссылка скопирована!')); }
+
+// ---------- 8. MALOY PHRASES ----------
+function maloySay(text) { const bubble = document.getElementById('maloy-speech'); if (!bubble) return; bubble.style.display = 'block'; bubble.textContent = text; setTimeout(() => { bubble.style.display = 'none'; }, 4000); }
+function tryMaloyPhrase(action) { if (!autoLevel) return; const now = Date.now(); if (now - lastMaloyPhraseTime < 60000) return; const rank = getRank(); let phrases = []; if (action === 'dust') { if (rank === 'Нищеброд') phrases = ['Фу, бро, опять эта дрянь? Мы так со дна не поднимемся, а нос сожжём!']; else if (rank === 'Хаслер') phrases = ['Нюхай, нюхай, мелкий. Может, это придаст тебе ума, а не только понтов!']; else if (rank === 'Барыга') phrases = ['Ого! С этого и надо было начинать! Теперь ты пахнешь как настоящий барыга!']; else if (rank === 'Босс') phrases = ['Да, шеф! Пусть эти крысы видят, кто здесь реально главный!']; else if (rank === 'Теневой Хозяин') phrases = ['Тссс, тихо... Только ты, я и эта белая дорожка. Это по-хозяйски.']; else if (rank === 'Крипто-Король') phrases = ['Мой Король, ты и так всесилен. Но выглядит это... божественно.']; } else if (action === 'energy') { if (rank === 'Нищеброд') phrases = ['Энергос? Серьёзно? Лучше бы на проезд накопил, нищеброд!']; else if (rank === 'Хаслер') phrases = ['Хорош бухать эту химию! Тебе ещё с братвой базарить!']; else if (rank === 'Барыга') phrases = ['Зарядился? Смотри не перетрудись, а то олимпийка лопнет!']; else if (rank === 'Босс') phrases = ['Энергия на максимум! Твой офис дрожит от твоей мощи, Босс!']; else if (rank === 'Теневой Хозяин') phrases = ['В тени не нужна суета. Но один глоток делает тебя ещё опаснее.']; else if (rank === 'Крипто-Король') phrases = ['Энергетик? Для прислуги. Но если ты хочешь — я принесу тебе все банки мира.']; } if (phrases.length) { maloySay(phrases[Math.floor(Math.random() * phrases.length)]); lastMaloyPhraseTime = now; } }
+
+// ---------- 9. DOM ----------
+const frogArea = document.getElementById('frog-area'), frogFull = document.getElementById('frog-full');
+const counterEl = document.getElementById('counter'), rankEl = document.getElementById('rank'), rankDescEl = document.getElementById('rank-description');
+const cashCounterEl = document.getElementById('cash-counter'), shopCashCounterEl = document.getElementById('shop-cash-counter');
+const energyBarIn = document.getElementById('energy-bar-in'), energyText = document.getElementById('energy-text');
+const energosIcon = document.getElementById('energos-icon'), dustIcon = document.getElementById('dust-icon');
+const energosChargesEl = document.getElementById('energos-charges'), dustLabelEl = document.getElementById('dust-label'), dustTimerEl = document.getElementById('dust-timer');
+const dustCountEl = document.getElementById('dust-count');
+const botEnergyRow = document.getElementById('bot-energy-row'), botEnergyBarIn = document.getElementById('bot-energy-bar-in'), botEnergyText = document.getElementById('bot-energy-text');
+const backgroundEl = document.getElementById('background'), maloyContainer = document.getElementById('maloy-container');
+const maloyAction = document.getElementById('maloy-action'), maloySubUpgrades = document.getElementById('maloy-sub-upgrades');
+const profileModal = document.getElementById('profile-modal'), panelHome = document.getElementById('panel-home');
+const seasonFreeCol = document.getElementById('season-free-col'), seasonVipCol = document.getElementById('season-vip-col');
+const vipButtonArea = document.getElementById('vip-button-area');
+const referralPsycho = document.getElementById('referral-psycho'), fomoEl = document.getElementById('fomo-message');
+
+function getRank() { if (coins >= 500000000) return 'Крипто-Король'; if (coins >= 50000000) return 'Теневой Хозяин'; if (coins >= 5000000) return 'Босс'; if (coins >= 500000) return 'Барыга'; if (coins >= 50000) return 'Хаслер'; return 'Нищеброд'; }
+function getRankProgress() { const ranks = [ { name: 'Нищеброд', min: 0 }, { name: 'Хаслер', min: 50000 }, { name: 'Барыга', min: 500000 }, { name: 'Босс', min: 5000000 }, { name: 'Теневой Хозяин', min: 50000000 }, { name: 'Крипто-Король', min: 500000000 } ]; let current = ranks[0], next = ranks[1]; for (let i = 0; i < ranks.length; i++) { if (coins >= ranks[i].min) { current = ranks[i]; next = ranks[i + 1] || null; } } if (!next) return { current: current.name, next: null, progress: 100, currentMin: current.min, nextMin: current.min }; const progress = ((coins - current.min) / (next.min - current.min)) * 100; return { current: current.name, next: next.name, progress: Math.min(100, Math.max(0, progress)), currentMin: current.min, nextMin: next.min }; }
+function updateRankProgressBlock(isOwnProfile) { const block = document.getElementById('rank-progress-block'); if (!block) return; if (!isOwnProfile) { block.style.display = 'none'; return; } block.style.display = 'block'; const { current, next, progress, currentMin, nextMin } = getRankProgress(); if (next) { document.getElementById('rank-progress-text').textContent = `${current} → ${next}`; document.getElementById('rank-progress-fill').style.width = progress + '%'; const remaining = nextMin - coins; document.getElementById('rank-next-text').textContent = `Осталось ${remaining.toLocaleString()}`; } else { document.getElementById('rank-progress-text').textContent = `${current}`; document.getElementById('rank-progress-fill').style.width = '100%'; document.getElementById('rank-next-text').textContent = 'Максимальный ранг'; } }
+function getLocationDescription() { const rank = getRank(); if (activeHat.includes('background_brokie')) { if (rank === 'Нищеброд' || rank === 'Хаслер') return 'Грязные стены, пахнет мочой и неудачей.'; if (rank === 'Барыга') return 'Тот самый подъезд, где ты начинал. Теперь он твой трофей.'; return 'Тот самый подъезд. Легенда гласит, что именно здесь началась твоя империя.'; } else if (activeHat.includes('background_office')) { if (rank === 'Нищеброд' || rank === 'Хаслер') return 'Офис? Ты ещё не дорос. Но амбиции уже не те.'; return 'Твой офис — центр вселенной. Конкуренты молятся, чтобы ты не вышел на связь.'; } else if (activeHat.includes('background_penthouse')) { if (rank === 'Босс' || rank === 'Теневой Хозяин' || rank === 'Крипто-Король') return 'Панорама ночного города. Ты на вершине. Мир у твоих ног.'; return 'Ты влез в пентхаус слишком рано. Тут холодно и одиноко, пока ты не станешь Боссом.'; } return getRankDescription(); }
+function getRankDescription() { const rank = getRank(); if (rank === 'Нищеброд') return 'Грязные стены, пахнет мочой и неудачей.'; if (rank === 'Хаслер') return 'Ты вырвался с завода. Теперь у тебя есть своя точка.'; if (rank === 'Барыга') return 'Дело пошло. Твой гараж — центр района.'; if (rank === 'Босс') return 'Ты построил империю. Весь город говорит о тебе.'; if (rank === 'Теневой Хозяин') return 'Ты в тени, но все знают, кто правит.'; if (rank === 'Крипто-Король') return 'Мир у твоих ног. Ты — легенда.'; return ''; }
+let painTimer = null;
+function applySkin(skin) { if (!ownedSkins.includes(skin)) return; activeSkin = skin; frogFull.src = SKINS[activeSkin].neutral; updateUI(); }
+function applyHat(hat) { if (!ownedHats.includes(hat)) return; if (hat === 'stairwell') activeHat = './background_brokie.png'; else if (hat === 'office') activeHat = './background_office.png'; else if (hat === 'penthouse') activeHat = './background_penthouse.png'; backgroundEl.style.backgroundImage = `url('${activeHat}')`; playMusic(hat); updateUI(); }
+function purchaseSkin(skin) { const prices = { redshirt: 50000, tracksuit: 250000, whitesuit: 1000000, balaclava: 10000 }; if (coins < prices[skin]) return; coins -= prices[skin]; ownedSkins.push(skin); playSound('buy.mp3'); updateShopButtons(); updateUI(); }
+function purchaseHat(hat) { const prices = { office: 75000, penthouse: 1500000 }; if (coins < prices[hat]) return; coins -= prices[hat]; ownedHats.push(hat); playSound('buy.mp3'); updateShopButtons(); updateUI(); }
+function updateShopButtons() { const rank = getRank(); const hasHustler = rank !== 'Нищеброд'; const hasDrugLord = (rank === 'Барыга' || rank === 'Босс' || rank === 'Теневой Хозяин' || rank === 'Крипто-Король'); const hasBoss = (rank === 'Босс' || rank === 'Теневой Хозяин' || rank === 'Крипто-Король'); const btnRedshirt = document.getElementById('btn-skin-redshirt'); if (ownedSkins.includes('redshirt')) { btnRedshirt.disabled = false; btnRedshirt.textContent = 'Применить'; btnRedshirt.onclick = () => applySkin('redshirt'); } else { btnRedshirt.disabled = !hasHustler; btnRedshirt.textContent = '💰 50 000'; btnRedshirt.onclick = () => purchaseSkin('redshirt'); } const btnTracksuit = document.getElementById('btn-skin-tracksuit'); if (ownedSkins.includes('tracksuit')) { btnTracksuit.disabled = false; btnTracksuit.textContent = 'Применить'; btnTracksuit.onclick = () => applySkin('tracksuit'); } else { btnTracksuit.disabled = !hasDrugLord; btnTracksuit.textContent = '💰 250 000'; btnTracksuit.onclick = () => purchaseSkin('tracksuit'); } const btnWhitesuit = document.getElementById('btn-skin-whitesuit'); if (ownedSkins.includes('whitesuit')) { btnWhitesuit.disabled = false; btnWhitesuit.textContent = 'Применить'; btnWhitesuit.onclick = () => applySkin('whitesuit'); } else { btnWhitesuit.disabled = !hasBoss; btnWhitesuit.textContent = '💰 1 000 000'; btnWhitesuit.onclick = () => purchaseSkin('whitesuit'); } const btnBalaclava = document.getElementById('btn-skin-balaclava'); if (ownedSkins.includes('balaclava')) { btnBalaclava.disabled = false; btnBalaclava.textContent = 'Применить'; btnBalaclava.onclick = () => applySkin('balaclava'); } else { btnBalaclava.disabled = false; btnBalaclava.textContent = '💰 10 000'; btnBalaclava.onclick = () => purchaseSkin('balaclava'); } const btnOffice = document.getElementById('btn-hat-office'); if (ownedHats.includes('office')) { btnOffice.disabled = false; btnOffice.textContent = 'Применить'; btnOffice.onclick = () => applyHat('office'); } else { btnOffice.disabled = !hasHustler; btnOffice.textContent = '💰 75 000'; btnOffice.onclick = () => purchaseHat('office'); } const btnPenthouse = document.getElementById('btn-hat-penthouse'); if (ownedHats.includes('penthouse')) { btnPenthouse.disabled = false; btnPenthouse.textContent = 'Применить'; btnPenthouse.onclick = () => applyHat('penthouse'); } else { btnPenthouse.disabled = !hasBoss; btnPenthouse.textContent = '💰 1 500 000'; btnPenthouse.onclick = () => purchaseHat('penthouse'); }
+  const goldenItem = document.getElementById('skin-item-golden');
+  if (ownedSkins.includes('golden_frog')) { goldenItem.style.display = 'flex'; }
+  const kingItem = document.getElementById('skin-item-king');
+  if (ownedSkins.includes('king')) { kingItem.style.display = 'flex'; }
+}
+window.applySkin = applySkin; window.applyHat = applyHat; window.purchaseSkin = purchaseSkin; window.purchaseHat = purchaseHat;
+function setFace(emotion) { if (activeSkin === 'balaclava' || activeSkin === 'golden_frog' || activeSkin === 'king') return applySkin(activeSkin); const skin = SKINS[activeSkin]; if (skin && skin[emotion]) frogFull.src = skin[emotion]; }
+function resetFace() { if (painTimer) clearTimeout(painTimer); painTimer = null; dustActive ? setFace('dust') : applySkin(activeSkin); }
+function toggleMaloySuit() { if (!maloySuitUnlocked) return; maloySuitActive = !maloySuitActive; document.getElementById('maloy-img').src = maloySuitActive ? './maloy_suit.png' : './maloy.png'; document.getElementById('maloy-suit-toggle').textContent = maloySuitActive ? 'Костюм: при параде' : 'Костюм: свой стиль'; }
+window.toggleMaloySuit = toggleMaloySuit;
+
+function grantFreeReward(level) { if (collectedFreeRewards[level]) return; const r = FREE_REWARDS[level]; if (!r) return; collectedFreeRewards[level] = true; if (r.type === 'coins') coins += r.value; else if (r.type === 'energos') energosCharges = Math.min(99, energosCharges + r.value); else if (r.type === 'dust') { dustCount += r.value; totalDust += r.value; } if (r.extra === 'skin_balaclava_or_coins') { if (!ownedSkins.includes('balaclava')) ownedSkins.push('balaclava'); else coins += 750; } else if (r.extra === 'vip_7_days_or_coins') { if (!vipActive) { vipActive = true; updateVipButton(); } else coins += 1000; } updateUI(); }
+function grantVipReward(level) { if (!vipActive || collectedVipRewards[level]) return; const r = VIP_REWARDS[level]; if (!r) return; collectedVipRewards[level] = true; if (r.type === 'cash') totalCash += r.value; else if (r.type === 'energos') energosCharges = Math.min(99, energosCharges + r.value); else if (r.type === 'dust') { dustCount += r.value; totalDust += r.value; } if (r.extra === 'energy_5') energosCharges = Math.min(99, energosCharges + 5); if (r.extra === 'dust_10') { dustCount += 10; totalDust += 10; } if (r.type === 'maloy_skin_suit') { maloySuitUnlocked = true; document.getElementById('maloy-suit-section').style.display = 'block'; } else if (r.type === 'skin_golden_frog') { if (!ownedSkins.includes('golden_frog')) { ownedSkins.push('golden_frog'); } } else if (r.extra === 'coins_200') coins += 200; updateUI(); }
+function checkSeasonLevelUp() { if (seasonLevel >= SEASON_MAX_LEVEL) return; if (seasonExperience >= SEASON_XP_PER_LEVEL) { seasonExperience -= SEASON_XP_PER_LEVEL; seasonLevel++; grantFreeReward(seasonLevel); grantVipReward(seasonLevel); renderSeasonRewards(); updateUI(); } }
+
+// ---------- UI ----------
+function updateUI() {
+  counterEl.textContent = `$${coins}`; rankEl.textContent = getRank(); rankDescEl.textContent = getLocationDescription();
+  cashCounterEl.textContent = `💵 ${totalCash}`; shopCashCounterEl.textContent = `💵 ${totalCash}`;
+  energyBarIn.style.width = Math.min(100, (energy / MAX_ENERGY) * 100) + '%'; energyText.textContent = `${Math.floor(energy)}%`;
+  if (autoLevel > 0) { maloyContainer.style.display = 'block'; maloySubUpgrades.style.display = 'block'; maloyAction.innerHTML = '<span class="status-text">Рядом</span>'; } else { maloyContainer.style.display = 'none'; maloySubUpgrades.style.display = 'none'; maloyAction.innerHTML = '<button onclick="buyUpgrade(\'auto\')">💰 500</button>'; }
+  if (autoLevel > 0) { botEnergyRow.style.display = 'flex'; botEnergyBarIn.style.width = Math.min(100, (botEnergy / BOT_ENERGY_MAX) * 100) + '%'; botEnergyText.textContent = `${Math.floor(botEnergy)}/${BOT_ENERGY_MAX}`; } else { botEnergyRow.style.display = 'none'; }
+  if (activeSkin === 'king') {
+    energosIcon.style.opacity = '0.5';
+    energosIcon.style.pointerEvents = 'none';
+    energosChargesEl.textContent = '👑';
+  } else {
+    energosIcon.style.opacity = '1';
+    energosIcon.style.pointerEvents = 'auto';
+    energosChargesEl.textContent = `x${energosCharges}`;
+  }
+  dustCountEl.textContent = `x${dustCount}`;
+  if (dustActive) { dustIcon.style.filter = 'brightness(1.3) drop-shadow(0 0 6px red)'; dustLabelEl.textContent = 'Пыль (x5) АКТИВ'; } else { dustIcon.style.filter = 'none'; dustLabelEl.textContent = 'Пыль (x5)'; }
+  document.getElementById('tap-level').textContent = tapLevel; document.getElementById('tap-current').textContent = COINS_PER_TAP;
+  document.getElementById('tap-cost').textContent = getCost('tap');
+  document.getElementById('energy-level').textContent = energyMaxLevel; document.getElementById('energy-current').textContent = MAX_ENERGY;
+  document.getElementById('energy-cost').textContent = getCost('energyMax');
+  document.getElementById('roof-level').textContent = roofLevel; document.getElementById('roof-current').textContent = roofLevel * 2;
+  document.getElementById('roof-cost').textContent = getCost('roof');
+  document.getElementById('crit-level').textContent = critLevel; document.getElementById('crit-current').textContent = critLevel * 5;
+  document.getElementById('crit-cost').textContent = getCost('crit');
+  document.getElementById('sub-bank-level').textContent = subBankLevel; document.getElementById('sub-regen-level').textContent = subRegenLevel; document.getElementById('sub-power-level').textContent = subPowerLevel;
+  document.getElementById('sub-bank-cost').textContent = getSubCost('subBank'); document.getElementById('sub-regen-cost').textContent = getSubCost('subRegen'); document.getElementById('sub-power-cost').textContent = getSubCost('subPower');
+  document.getElementById('season-level-badge').textContent = `Ур.${seasonLevel}`;
+  document.getElementById('season-horizontal-fill').style.width = (seasonExperience / SEASON_XP_PER_LEVEL * 100) + '%';
+  document.getElementById('season-current-lvl').textContent = seasonLevel; document.getElementById('season-next-lvl').textContent = Math.min(seasonLevel + 1, SEASON_MAX_LEVEL);
+  document.getElementById('player-top-rank').textContent = Math.max(4, 100 - Math.max(1000, Math.floor(coins / 10000)));
+  document.getElementById('player-top-coins').textContent = coins;
+  document.getElementById('player-safe-rank').textContent = Math.max(4, 50 - Math.max(500, Math.floor(totalCash / 100)));
+  document.getElementById('player-safe-cash').textContent = totalCash;
+  let topPos = Math.max(4, 100 - Math.max(1000, Math.floor(coins / 10000)));
+  let topPsycho = ''; if (topPos === 1) topPsycho = 'Ты король этого муравейника. Все смотрят снизу вверх.'; else if (topPos <= 3) topPsycho = 'Ты дышишь в спину лидеру. Ещё рывок — и ты на троне.'; else if (topPos <= 10) topPsycho = 'Ты в элите. Но до настоящей власти далеко.'; else topPsycho = 'Ты даже не в десятке. Пыль под ногами, а не игрок.'; document.getElementById('top-psycho-text').textContent = topPsycho;
+  let safePos = Math.max(4, 50 - Math.max(500, Math.floor(totalCash / 100)));
+  let safePsycho = ''; if (safePos === 1) safePsycho = 'Твой сейф ломится. Ты главный транжира района.'; else if (safePos <= 3) safePsycho = 'Твои траты внушают уважение. Ты на верном пути.'; else if (safePos <= 10) safePsycho = 'Ты стабилен, но боссы тратят больше.'; else safePsycho = 'Твой налик — слёзы. Боссы не замечают твоих трат.'; document.getElementById('safe-psycho-text').textContent = safePsycho;
+  if (referralCount < 1) referralPsycho.textContent = 'Ты даже никого не привёл. Крысы тебя не уважают.'; else if (referralCount <= 2) referralPsycho.textContent = 'Пара шавок за тобой бегает. Это ещё не Братва, но начало положено.'; else if (referralCount <= 5) referralPsycho.textContent = 'У тебя уже своя банда. Район начинает прислушиваться.'; else if (referralCount <= 10) referralPsycho.textContent = 'Твоё имя шепчут в подворотнях. Ты не просто игрок, ты — сила.'; else if (referralCount <= 20) referralPsycho.textContent = 'Ты создал сеть. Твоя Братва опутала весь город.'; else referralPsycho.textContent = 'Ты Крёстный отец. Каждый новый день — это дань твоей власти.';
+  if (debtActive) { document.getElementById('debt-status-container').style.display = 'block'; document.getElementById('btn-take-debt').style.display = 'none'; document.getElementById('debt-info').textContent = `Ты должен ${debtAmount} Н (${debtPercent}%).`; let h = Math.floor(debtTimer / 3600), m = Math.floor((debtTimer % 3600) / 60), s = debtTimer % 60; document.getElementById('debt-timer').textContent = `Осталось: ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`; document.getElementById('btn-repay-debt').style.display = 'block'; document.getElementById('btn-repay-coins').style.display = totalCash < debtAmount ? 'block' : 'none'; document.getElementById('debt-penalty-warning').style.display = debtPenalty ? 'block' : 'none'; } else { document.getElementById('debt-status-container').style.display = 'none'; document.getElementById('btn-take-debt').style.display = 'block'; }
+  if (totalTaps >= 10000) document.getElementById('ach-1').classList.remove('locked'); if (coins >= 1000000 || maxCoins >= 1000000) document.getElementById('ach-2').classList.remove('locked'); if (totalDust >= 100) document.getElementById('ach-3').classList.remove('locked'); if (totalCrits >= 100) document.getElementById('ach-4').classList.remove('locked'); if (autoLevel >= 4) document.getElementById('ach-5').classList.remove('locked'); if (activeSkin === 'whitesuit' && activeHat === './background_penthouse.png') document.getElementById('ach-6').classList.remove('locked');
+  if (getRank() === 'Крипто-Король' && !ownedSkins.includes('king')) { ownedSkins.push('king'); applySkin('king'); }
+  checkRankScene();
+}
+
+function renderSeasonRewards() { const scrollContainer = document.getElementById('season-scroll-container'); const scrollTop = scrollContainer.scrollTop; seasonFreeCol.innerHTML = ''; seasonVipCol.innerHTML = ''; for (let i = 1; i <= SEASON_MAX_LEVEL; i++) { let freeItem = document.createElement('div'); freeItem.className = `season-reward-item ${i <= seasonLevel ? 'unlocked' : ''}`; let freeDesc = FREE_REWARDS[i] ? (FREE_REWARDS[i].type === 'coins' ? `${FREE_REWARDS[i].value} м.` : FREE_REWARDS[i].type === 'energos' ? `+${FREE_REWARDS[i].value} Энергос` : `Пыль x${FREE_REWARDS[i].value}`) : '-'; freeItem.innerHTML = `${i}<br><small>${freeDesc}</small>`; seasonFreeCol.appendChild(freeItem); let vipItem = document.createElement('div'); vipItem.className = `season-reward-item vip-item ${i <= seasonLevel && vipActive ? 'unlocked' : ''}`; let vipDesc = ''; if (VIP_REWARDS[i]) { if (VIP_REWARDS[i].type === 'cash') vipDesc = `${VIP_REWARDS[i].value} Н`; else if (VIP_REWARDS[i].type === 'energos') vipDesc = `+${VIP_REWARDS[i].value} Энергос`; else if (VIP_REWARDS[i].type === 'dust') vipDesc = `Пыль x${VIP_REWARDS[i].value}`; else if (VIP_REWARDS[i].type === 'skin_neon') vipDesc = 'Скин Неон'; else if (VIP_REWARDS[i].type === 'maloy_skin_suit') vipDesc = 'Костюм Малого'; else if (VIP_REWARDS[i].type === 'skin_golden_frog') vipDesc = 'Золотой лягушонок'; else if (VIP_REWARDS[i].type === 'crown_and_title_king') vipDesc = 'Корона + Титул'; if (VIP_REWARDS[i].extra === 'coins_200') vipDesc += ' +200 м.'; if (VIP_REWARDS[i].extra === 'energy_5') vipDesc += ' +5 Энерг.'; if (VIP_REWARDS[i].extra === 'dust_10') vipDesc += ' +10 Пыли'; } vipItem.innerHTML = `${i}<br><small>${vipDesc || '-'}</small>`; seasonVipCol.appendChild(vipItem); } scrollContainer.scrollTop = scrollTop; }
+function updateVipButton() { vipButtonArea.innerHTML = vipActive ? '<button disabled style="background:#ffd700;color:#1a1a1a;padding:10px 20px;border-radius:20px;">VIP АКТИВЕН</button>' : `<button onclick="buyVip()" style="background:#ffd700;color:#1a1a1a;padding:10px 20px;border-radius:20px;">Активировать VIP (${VIP_COST} Н)</button>`; }
+window.buyVip = function() { if (totalCash < VIP_COST) return alert('Недостаточно Налика.'); totalCash -= VIP_COST; vipActive = true; updateVipButton(); renderSeasonRewards(); for (let i = 1; i <= seasonLevel; i++) grantVipReward(i); updateUI(); };
+function getCost(type) { if (type === 'tap') return Math.floor(500 * Math.pow(2.5, tapLevel)); if (type === 'auto') return Math.floor(500 * Math.pow(2.5, autoLevel)); if (type === 'energyMax') return Math.floor(200 * Math.pow(2.5, energyMaxLevel)); if (type === 'roof') return Math.floor(1000 * Math.pow(2.5, roofLevel)); if (type === 'crit') return Math.floor(2000 * Math.pow(2.5, critLevel)); return 0; }
+function getSubCost(type) { if (type === 'subBank') return Math.floor(200 * Math.pow(2.5, subBankLevel - 1)); if (type === 'subRegen') return Math.floor(300 * Math.pow(2.5, subRegenLevel - 1)); if (type === 'subPower') return Math.floor(400 * Math.pow(2.5, subPowerLevel - 1)); return 0; }
+window.buyUpgrade = function(type) { const cost = getCost(type); if (coins < cost) return; coins -= cost; if (type === 'tap') { tapLevel++; COINS_PER_TAP = 1 + tapLevel * 2; } else if (type === 'auto') { autoLevel++; if (autoLevel === 1) { superTapCost = 10; superTapReward = 1; } } else if (type === 'energyMax') { energyMaxLevel++; MAX_ENERGY = Math.floor(100 * Math.pow(1.1, energyMaxLevel)); } else if (type === 'roof') roofLevel++; else if (type === 'crit') critLevel++; updateUI(); };
+window.buySubUpgrade = function(type) { const cost = getSubCost(type); if (coins < cost) return; coins -= cost; if (type === 'subBank') { subBankLevel++; BOT_ENERGY_MAX = 50 + (subBankLevel - 1) * 10; } else if (type === 'subRegen') { subRegenLevel++; botRegenRate = 3 + (subRegenLevel - 1); } else if (type === 'subPower') { subPowerLevel++; superTapReward = Math.floor(superTapReward * 1.2); } updateUI(); };
+window.buyDealer = function(item) { if (item === 'cash100') totalCash += 100; else if (item === 'cash500') totalCash += 500; else if (item === 'cash1500') totalCash += 1500; else if (item === 'cash5000') totalCash += 5000; else if (item === 'dust1') { if (totalCash < 100) return; totalCash -= 100; dustCount++; totalDust++; } else if (item === 'dust5') { if (totalCash < 400) return; totalCash -= 400; dustCount += 5; totalDust += 5; } else if (item === 'vip') { if (totalCash < 800) return; totalCash -= 800; dustCount += 10; totalDust += 10; } else if (item === 'premium') { if (totalCash < 1500) return; totalCash -= 1500; } updateUI(); };
+window.activateFriendCode = function() { if (codeActivated) return alert('Ты уже активировал код!'); let inputCode = document.getElementById('friend-code-input').value.trim(); if (!inputCode) return alert('Введи код друга.'); if (inputCode === playerId) return alert('Нельзя активировать свой код.'); codeActivated = true; coins += 1000; energosCharges = Math.min(99, energosCharges + 1); document.getElementById('friend-code-input').disabled = true; updateUI(); };
+window.updateDebtCalculator = function() { const amount = parseInt(document.getElementById('debt-range').value); const percent = Math.floor(10 + (amount / 5000) * 2); document.getElementById('debt-amount-display').textContent = amount; document.getElementById('debt-get').textContent = amount; document.getElementById('debt-return').textContent = Math.floor(amount * (1 + percent / 100)); document.getElementById('debt-percent').textContent = percent; };
+window.takeDebtNew = function() { if (debtActive) return alert('Сначала верни старый долг!'); const amount = parseInt(document.getElementById('debt-range').value); const percent = Math.floor(10 + (amount / 5000) * 2); totalCash += amount; debtAmount = Math.floor(amount * (1 + percent / 100)); debtPercent = percent; debtActive = true; debtTimer = DEBT_DURATION; debtPenalty = false; updateUI(); };
+window.repayDebt = function() { if (!debtActive) return; if (totalCash >= debtAmount) { totalCash -= debtAmount; debtActive = false; playSound('buy.mp3'); } else alert('Недостаточно Налика.'); updateUI(); };
+window.repayDebtWithCoins = function() { if (!debtActive) return; const coinsNeeded = (debtAmount - totalCash) * 1000; if (coins >= coinsNeeded) { coins -= coinsNeeded; totalCash = 0; debtActive = false; playSound('buy.mp3'); } else alert('Недостаточно монет.'); updateUI(); };
+
+// ---------- TAP ----------
+function performTap(clientX, clientY) { fomoEl.textContent = ''; const energyCost = dustActive ? 2 : 1; if (energy < energyCost) { setFace('angry'); if (painTimer) clearTimeout(painTimer); painTimer = setTimeout(resetFace, 400); updateUI(); return; } let tapReward = COINS_PER_TAP * (dustActive ? DUST_MULTIPLIER : 1); if (critLevel > 0 && Math.random() < 0.05 * critLevel) { tapReward *= 3; totalCrits++; playSound('crit.mp3'); } energy -= energyCost; coins += tapReward; totalTaps++; if (coins > maxCoins) maxCoins = coins; setFace('pain'); if (painTimer) clearTimeout(painTimer); painTimer = setTimeout(resetFace, 200); playSound('tap.mp3'); if (panelHome.classList.contains('active')) { const rect = document.getElementById('game-container').getBoundingClientRect(); const el = document.createElement('div'); el.className = 'fly-text'; el.textContent = `+$${tapReward}`; el.style.left = (clientX - rect.left) + 'px'; el.style.top = (clientY - rect.top) + 'px'; document.getElementById('game-container').appendChild(el); setTimeout(() => el.remove(), 800); } updateUI(); }
+frogArea.addEventListener('pointerdown', (e) => { e.preventDefault(); performTap(e.clientX, e.clientY); });
+document.addEventListener('gesturestart', (e) => e.preventDefault()); document.addEventListener('gesturechange', (e) => e.preventDefault()); document.addEventListener('gestureend', (e) => e.preventDefault()); document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// AUTOCLICKER
+setInterval(() => { if (autoLevel > 0 && botEnergy >= superTapCost) { botEnergy -= superTapCost; coins += superTapReward; if (panelHome.classList.contains('active')) { const rect = document.getElementById('game-container').getBoundingClientRect(); const el = document.createElement('div'); el.className = 'fly-text'; el.textContent = `+$${superTapReward}`; el.style.left = (rect.width * 0.7) + 'px'; el.style.top = (rect.height * 0.7) + 'px'; document.getElementById('game-container').appendChild(el); setTimeout(() => el.remove(), 900); } updateUI(); } if (autoLevel > 0 && botEnergy < BOT_ENERGY_MAX) { botEnergy = Math.min(BOT_ENERGY_MAX, botEnergy + botRegenRate); updateUI(); } }, 500);
+
+// DUST & ENERGOS
+dustIcon.addEventListener('click', () => { if (dustActive) return; if (dustCount <= 0) { alert('Нет пакетиков пыли. Купи у Дилера.'); return; } dustActive = true; dustCount--; totalDust++; seasonExperience = Math.min(SEASON_XP_PER_LEVEL, seasonExperience + 1); checkSeasonLevelUp(); playSound('dust.mp3'); tryMaloyPhrase('dust'); dustTimerEl.textContent = 'Осталось: 10 сек'; let timer = 10; dustInterval = setInterval(() => { timer--; dustTimerEl.textContent = `Осталось: ${timer} сек`; if (timer <= 0) { clearInterval(dustInterval); dustActive = false; dustTimerEl.textContent = ''; updateUI(); } }, 1000); updateUI(); });
+energosIcon.addEventListener('click', () => {
+  if (activeSkin === 'king') return;
+  if (energosCharges > 0 && energy < MAX_ENERGY) { energosCharges--; energy = MAX_ENERGY; totalEnergos++; playSound('energy.mp3'); tryMaloyPhrase('energy'); updateUI(); }
+  else if (energosCharges === 0) { alert('Смотри рекламу!'); energosCharges = 3; updateUI(); }
+});
+
+// TABS
+window.switchTab = function(tab) {
+  closeWheel();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if (tab === 'home') { document.querySelector('.tab:nth-child(1)').classList.add('active'); document.getElementById('panel-home').classList.add('active'); }
+  else if (tab === 'shop') { document.querySelector('.tab:nth-child(2)').classList.add('active'); document.getElementById('panel-shop').classList.add('active'); }
+  else if (tab === 'leaderboard') { document.querySelector('.tab:nth-child(3)').classList.add('active'); document.getElementById('panel-leaderboard').classList.add('active'); }
+  else if (tab === 'season') { document.querySelector('.tab:nth-child(1)').classList.add('active'); document.getElementById('panel-season').classList.add('active'); updateVipButton(); renderSeasonRewards(); }
+};
+window.switchShopTab = function(section) { document.querySelectorAll('#panel-shop .shop-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('#panel-shop .shop-section').forEach(s => s.style.display = 'none'); if (section === 'boosts') { document.querySelector('#panel-shop .shop-tab:nth-child(1)').classList.add('active'); document.getElementById('shop-section-boosts').style.display = 'block'; } else if (section === 'skins') { document.querySelector('#panel-shop .shop-tab:nth-child(2)').classList.add('active'); document.getElementById('shop-section-skins').style.display = 'block'; updateShopButtons(); } else if (section === 'hats') { document.querySelector('#panel-shop .shop-tab:nth-child(3)').classList.add('active'); document.getElementById('shop-section-hats').style.display = 'block'; updateShopButtons(); } else if (section === 'referral') { document.querySelector('#panel-shop .shop-tab:nth-child(4)').classList.add('active'); document.getElementById('shop-section-referral').style.display = 'block'; } else if (section === 'dealer') { document.querySelector('#panel-shop .shop-tab:nth-child(5)').classList.add('active'); document.getElementById('shop-section-dealer').style.display = 'block'; } else if (section === 'debt') { document.querySelector('#panel-shop .shop-tab:nth-child(6)').classList.add('active'); document.getElementById('shop-section-debt').style.display = 'block'; } };
+window.switchLeaderboardTab = function(tab) { document.querySelectorAll('#panel-leaderboard .shop-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('#panel-leaderboard .leaderboard-section').forEach(s => s.style.display = 'none'); if (tab === 'top') { document.querySelector('#panel-leaderboard .shop-tab:nth-child(1)').classList.add('active'); document.getElementById('leaderboard-section-top').style.display = 'block'; } else if (tab === 'safe') { document.querySelector('#panel-leaderboard .shop-tab:nth-child(2)').classList.add('active'); document.getElementById('leaderboard-section-safe').style.display = 'block'; } };
+
+// PROFILE
+window.showProfile = function(nick) {
+  document.getElementById('profile-nick').childNodes[0].textContent = `Ник: ${nick}`;
+  document.getElementById('profile-rank').textContent = 'Ранг: ???';
+  document.getElementById('profile-ref-rank').textContent = 'Братан: ???';
+  document.getElementById('profile-referral-count').textContent = 'Приглашено: ???';
+  document.getElementById('stat-taps').textContent = '???';
+  document.getElementById('stat-crits').textContent = '???';
+  document.getElementById('stat-dust').textContent = '???';
+  document.getElementById('stat-energos').textContent = '???';
+  document.getElementById('stat-cash').textContent = '???';
+  document.getElementById('stat-max-coins').textContent = '???';
+  document.getElementById('name-edit-section').style.display = 'none';
+  document.querySelector('.edit-icon').style.display = 'none';
+  updateRankProgressBlock(false);
+  profileModal.classList.add('active');
+};
+document.getElementById('logo-container').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('profile-nick').childNodes[0].textContent = `Ник: ${playerNickname}`;
+  document.getElementById('profile-rank').textContent = `Ранг: ${getRank()}`;
+  let refRank = 'Одиночка';
+  if (referralCount >= 20) refRank = 'Авторитет';
+  else if (referralCount >= 10) refRank = 'Бригадир';
+  document.getElementById('profile-ref-rank').textContent = `Братан: ${refRank} (${referralPercent}%)`;
+  document.getElementById('profile-referral-count').textContent = `Приглашено: ${referralCount}`;
+  document.getElementById('stat-taps').textContent = totalTaps;
+  document.getElementById('stat-crits').textContent = totalCrits;
+  document.getElementById('stat-dust').textContent = totalDust;
+  document.getElementById('stat-energos').textContent = totalEnergos;
+  document.getElementById('stat-cash').textContent = totalCash;
+  document.getElementById('stat-max-coins').textContent = maxCoins;
+  document.querySelector('.edit-icon').style.display = 'inline';
+  document.getElementById('name-edit-section').style.display = 'none';
+  updateRankProgressBlock(true);
+  profileModal.classList.add('active');
+});
+window.closeProfile = () => { document.querySelector('.edit-icon').style.display = 'inline'; profileModal.classList.remove('active'); };
+profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeProfile(); });
+window.toggleNameEdit = function() { const sec = document.getElementById('name-edit-section'); const input = document.getElementById('name-input'); if (!sec || !input) return; input.value = playerNickname; sec.style.display = (sec.style.display === 'none') ? 'flex' : 'none'; };
+window.saveNickname = function() { const input = document.getElementById('name-input'); if (!input) return; const newName = input.value.trim().slice(0, 16) || 'Аноним'; playerNickname = newName; localStorage.setItem('brokie_nick', newName); document.getElementById('name-edit-section').style.display = 'none'; document.getElementById('profile-nick').childNodes[0].textContent = `Ник: ${playerNickname}`; };
+
+// INTRO
+let introSlides = []; let currentIntroSlide = 0; let introActive = false; let typingInterval = null;
+function startIntro() { introSlides = [ { src: './intro_1.png', text: 'Вот так и живёшь...' }, { src: './intro_2.png', text: 'А потом появился он...' }, { src: './intro_3.png', text: 'В тот вечер я просто шёл после смены...' }, { src: './intro_4.png', text: 'Я поднёс его к лицу и долго смотрел...' }, { src: './intro_5.png', text: 'Я вернулся в наш старый подъезд...' }, { src: './intro_6.png', text: 'Они сели в дорогую красную тачку...' } ]; currentIntroSlide = 0; introActive = true; document.getElementById('intro-modal').style.display = 'flex'; showIntroSlide(); }
+function showIntroSlide() { if (currentIntroSlide >= introSlides.length) { endIntro(); return; } const slide = introSlides[currentIntroSlide]; document.getElementById('intro-image').src = slide.src; document.getElementById('intro-next').style.display = 'none'; typeText(slide.text, document.getElementById('intro-text')); }
+function typeText(text, element) { if (typingInterval) clearInterval(typingInterval); element.innerText = ''; let i = 0; typingInterval = setInterval(() => { if (i < text.length) { element.innerText += text.charAt(i); i++; } else { clearInterval(typingInterval); document.getElementById('intro-next').style.display = 'block'; } }, 40); }
+function nextIntroSlide() { currentIntroSlide++; showIntroSlide(); }
+function endIntro() { document.getElementById('intro-modal').style.display = 'none'; introActive = false; localStorage.setItem('brokie_intro_done', 'true'); }
+
+// ---------- КОЛЕСО ФОРТУНЫ (Retina 600px, оффсет 0.06, чёрный текст, TEXT_DISTANCE=100) ----------
+const wheelCanvas = document.getElementById('wheel-canvas');
+const ctx = wheelCanvas.getContext('2d');
+const wheelResult = document.getElementById('wheel-result');
+const wheelSpinsLeft = document.getElementById('wheel-spins-left');
+const wheelSpinBtn = document.getElementById('wheel-spin-btn');
+let freeSpins = 1;
+let purchasedSpins = 0;
+let spinning = false;
+const WHEEL_IMAGE_OFFSET = 0.06;
+const CX = 300, CY = 300, RADIUS = 280;
+const TEXT_DISTANCE = 100;
+
+const prizes = [
+  { label: '5 000 монет', color: '#ffd700', chance: 0.20, type: 'coins', value: 5000 },
+  { label: '10 000 монет', color: '#ffaa00', chance: 0.15, type: 'coins', value: 10000 },
+  { label: '50 000 монет', color: '#ff8800', chance: 0.05, type: 'coins', value: 50000 },
+  { label: '100 Нала', color: '#00cc44', chance: 0.15, type: 'cash', value: 100 },
+  { label: '500 Нала', color: '#009933', chance: 0.15, type: 'cash', value: 500 },
+  { label: 'Пыль (1)', color: '#cc44ff', chance: 0.10, type: 'dust', value: 1 },
+  { label: 'Энергос (1)', color: '#44ccff', chance: 0.09, type: 'energos', value: 1 },
+  { label: 'VIP 1 час', color: '#ff4444', chance: 0.005, type: 'vip', value: 1 },
+  { label: 'ДЖЕКПОТ 100k', color: '#ff0000', chance: 0.005, type: 'jackpot', value: 100000 },
+  { label: '🔄 Фриспин', color: '#ffffff', chance: 0.10, type: 'free_spin', value: 1 }
+];
+
+const wheelImage = new Image();
+wheelImage.src = './wheel.png';
+
+function drawWheel() {
+  ctx.clearRect(0, 0, 600, 600);
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(WHEEL_IMAGE_OFFSET);
+  ctx.drawImage(wheelImage, -300, -300, 600, 600);
+  ctx.restore();
+  let angle = 0;
+  const slice = (2 * Math.PI) / prizes.length;
+  ctx.save();
+  ctx.translate(CX, CY);
+  prizes.forEach(p => {
+    ctx.save();
+    ctx.rotate(angle + slice / 2);
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 22px Oswald';
+    ctx.fillText(p.label, TEXT_DISTANCE, 5);
+    ctx.restore();
+    angle += slice;
+  });
+  ctx.restore();
+}
+
+wheelImage.onload = () => { drawWheel(); };
+
+function spinWheel() {
+  if (spinning) return;
+  if (freeSpins + purchasedSpins <= 0) { alert('Нет прокруток!'); return; }
+  spinning = true;
+  wheelSpinBtn.disabled = true;
+  wheelResult.textContent = '';
+  const prize = getRandomPrize();
+  const targetIndex = prizes.indexOf(prize);
+  const sliceAngle = (2 * Math.PI) / prizes.length;
+  const targetAngle = targetIndex * sliceAngle + sliceAngle / 2;
+  const extraTurns = 5 * 2 * Math.PI;
+  const totalRotation = extraTurns + (2 * Math.PI - targetAngle);
+  const duration = 3000;
+  const start = performance.now();
+  function anim(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const angle = totalRotation * ease;
+    ctx.clearRect(0, 0, 600, 600);
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(angle + WHEEL_IMAGE_OFFSET);
+    ctx.drawImage(wheelImage, -300, -300, 600, 600);
+    ctx.restore();
+    let a = 0;
+    const sl = (2 * Math.PI) / prizes.length;
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(angle);
+    prizes.forEach(p => {
+      ctx.save();
+      ctx.rotate(a + sl / 2);
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 22px Oswald';
+      ctx.fillText(p.label, TEXT_DISTANCE, 5);
+      ctx.restore();
+      a += sl;
+    });
+    ctx.restore();
+    if (progress < 1) requestAnimationFrame(anim);
+    else {
+      spinning = false;
+      if (freeSpins > 0) freeSpins--;
+      else purchasedSpins--;
+      applyPrize(prize);
+      updateWheelUI();
+      drawWheel();
+    }
+  }
+  requestAnimationFrame(anim);
+}
+
+function getRandomPrize() { const r = Math.random(); let cum = 0; for (let p of prizes) { cum += p.chance; if (r < cum) return p; } return prizes[0]; }
+function applyPrize(prize) { switch (prize.type) { case 'coins': coins += prize.value; break; case 'cash': totalCash += prize.value; break; case 'dust': dustCount += prize.value; totalDust += prize.value; break; case 'energos': energosCharges = Math.min(99, energosCharges + prize.value); break; case 'vip': vipActive = true; break; case 'jackpot': coins += prize.value; break; case 'free_spin': freeSpins++; break; } wheelResult.textContent = `Выигрыш: ${prize.label}!`; updateUI(); }
+function buySpin() { purchasedSpins++; updateWheelUI(); }
+function updateWheelUI() { wheelSpinsLeft.textContent = `Прокруток: бесплатных ${freeSpins}, купленных ${purchasedSpins}`; wheelSpinBtn.disabled = (freeSpins + purchasedSpins === 0) || spinning; }
+function openWheel() { document.getElementById('wheel-panel').classList.add('active'); document.getElementById('panel-home').classList.remove('active'); updateWheelUI(); drawWheel(); }
+function closeWheel() { document.getElementById('wheel-panel').classList.remove('active'); document.getElementById('panel-home').classList.add('active'); }
+
+// ---------- СЮЖЕТНЫЕ СЦЕНЫ (с печатной машинкой) ----------
+const RANK_SCENES = {
+  'Хаслер': [
+    { img: './scene_hustler_1.png', text: 'Я вырвался с этого сраного завода. Теперь у меня своя точка. Первая пачка наличных — и ты уже не грязь под ногами. Малой таскает коробки, дело закрутилось. Запах подъезда ещё напоминает, с чего я начинал. Но это приятный запах. Запах бабок.' },
+    { img: './scene_hustler_2.png', text: 'О, явилась, шлюха. Бросила меня, когда я был никем, а теперь прибежала, почуяла бабки. Сижу, считаю налик, даже не смотрю на неё. Молча показываю на дверь. Вали отсюда, здесь тебе ничего не светит.' }
+  ],
+  'Барыга': [
+    { img: './scene_dealer_1.png', text: 'Глухая ночь, дождь. Я стою у склада, жду. Малой суетится с погрузчиком, всё чётко. Грузовик уже подъезжает. Сейчас решится, стану ли я хозяином этого города.' },
+    { img: './scene_dealer_2.png', text: 'Я срываю пломбу, открываю двери. Внутри тонны белой пыли. Это не романтика, это бизнес. Город теперь мой. Все, кто раньше смотрел свысока, скоро придут за дозой. И будут платить.' }
+  ],
+  'Босс': [
+    { img: './scene_boss_1.png', text: 'Пентхаус. Панорама ночного города. Я в белом костюме, ноги на столе. Малой в строгом прикиде докладывает о прибыли. Я беру то, что идёт мне в руки. А идёт мне — весь этот ёбаный мир. И всё, что в нём.' }
+  ],
+  'Крипто-Король': [
+    { img: './scene_king_1.png', text: 'Я больше не играю в систему. Я сам — система. Цифры крипты летят, подчиняясь каждому моему движению. Один щелчок пальцами — и рынок падает. Я — Крипто-Король. Я — Бог. А вы все — просто строчки в моём блокчейне.' }
+  ]
+};
+
+let currentSceneSlides = [], currentSceneIndex = 0, sceneActive = false, sceneTypingInterval = null, previousRank = 'Нищеброд';
+
+function typeSceneText(text) {
+  const el = document.getElementById('scene-text');
+  if (sceneTypingInterval) clearInterval(sceneTypingInterval);
+  el.innerText = '';
+  let i = 0;
+  sceneTypingInterval = setInterval(() => {
+    if (i < text.length) { el.innerText += text.charAt(i); i++; }
+    else { clearInterval(sceneTypingInterval); document.getElementById('scene-next').style.display = 'block'; }
+  }, 40);
+}
+
+function playRankScene(rank) {
+  if (sceneActive || document.getElementById('scene-modal').classList.contains('active')) return;
+  const slides = RANK_SCENES[rank]; if (!slides) return;
+  currentSceneSlides = slides; currentSceneIndex = 0; sceneActive = true;
+  document.getElementById('scene-modal').classList.add('active');
+  showSceneSlide();
+}
+
+function showSceneSlide() {
+  if (currentSceneIndex >= currentSceneSlides.length) { closeScene(); return; }
+  const slide = currentSceneSlides[currentSceneIndex];
+  document.getElementById('scene-image').src = slide.img;
+  document.getElementById('scene-next').style.display = 'none';
+  typeSceneText(slide.text);
+}
+
+function nextSceneSlide() {
+  if (sceneTypingInterval) { clearInterval(sceneTypingInterval); sceneTypingInterval = null; }
+  currentSceneIndex++;
+  showSceneSlide();
+}
+
+function closeScene() {
+  document.getElementById('scene-modal').classList.remove('active');
+  sceneActive = false; currentSceneSlides = []; currentSceneIndex = 0;
+  if (sceneTypingInterval) { clearInterval(sceneTypingInterval); sceneTypingInterval = null; }
+}
+
+function checkRankScene() {
+  if (sceneActive || document.getElementById('scene-modal').classList.contains('active')) return;
+  const currentRank = getRank();
+  if (currentRank !== previousRank) {
+    previousRank = currentRank;
+    if (RANK_SCENES[currentRank] && !localStorage.getItem('brokie_scene_' + currentRank)) {
+      localStorage.setItem('brokie_scene_' + currentRank, '1');
+      playRankScene(currentRank);
+    }
+  }
+}
+
+setTimeout(() => {
+  previousRank = getRank();
+  ['Хаслер','Барыга','Босс','Крипто-Король'].forEach(r => { if (coins >= getRankMin(r) && !localStorage.getItem('brokie_scene_' + r)) localStorage.setItem('brokie_scene_' + r, '1'); });
+}, 100);
+
+function getRankMin(rankName) {
+  switch(rankName) {
+    case 'Хаслер': return 50000;
+    case 'Барыга': return 500000;
+    case 'Босс': return 5000000;
+    case 'Крипто-Король': return 500000000;
+    default: return Infinity;
+  }
+}
+
+// INIT
+playMusic('stairwell');
+setInterval(() => { if (energy < MAX_ENERGY && !dustActive) energy = Math.min(MAX_ENERGY, energy + 1); if (roofLevel > 0) coins += roofLevel * 2; if (debtActive) { debtTimer--; if (debtTimer <= 0 && !debtPenalty) { debtPenalty = true; playSound('debt.mp3'); alert('ПРОСРОЧКА!'); } if (debtPenalty) { coins = Math.max(0, coins - Math.floor(coins * 0.1)); totalCash = Math.max(0, totalCash - Math.floor(totalCash * 0.1)); } } updateUI(); }, 1000);
+document.getElementById('ref-code-display').textContent = playerId;
+updateUI(); renderSeasonRewards(); updateVipButton(); updateDebtCalculator();
+document.getElementById('profile-nick').childNodes[0].textContent = `Ник: ${playerNickname}`;
+if (!localStorage.getItem('brokie_intro_done')) startIntro();
+(async function init() { const lang = detectLanguage(); await loadTranslations(lang); })();
+updateWheelUI();
+</script>
+</body>
+</html>
