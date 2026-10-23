@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>$BROKIE • Подъезд + Brokie City</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -324,11 +325,10 @@
             </div>
             <div id="shop-section-referral" class="shop-section" style="overflow-y:auto;flex:1;display:none;">
                 <h4 data-i18n="referral_title">Привести Братана</h4>
-                <div class="shop-item" style="flex-direction: column; gap: 10px;">
-                    <div><b data-i18n="referral_link_label">Твоя ссылка:</b><br><span id="ref-code-display"></span></div>
-                    <button id="ref-share-btn" onclick="shareReferralLink()" style="width: 100%;" data-i18n="referral_share_btn">Поделиться</button>
+                <div class="shop-item" style="flex-direction: column; gap: 10px; text-align:center;">
+                    <p style="color:#aaa; font-size:14px; margin-bottom:10px;">Пригласи друга на район, и получай 5% с его заработка. Чем больше братвы, тем сильнее твой район.</p>
+                    <button id="ref-share-btn" onclick="shareReferralLink()" style="width: 100%; padding:15px; font-size:16px;" data-i18n="referral_share_btn">Поделиться ссылкой</button>
                 </div>
-                <p id="referral-psycho"></p>
             </div>
             <div id="shop-section-dealer" class="shop-section" style="overflow-y:auto;flex:1;display:none;"><h4 data-i18n="dealer_title">Налик</h4>
                 <div class="shop-item dealer-item"><div><b>100 💵</b></div><button onclick="buyDealer('cash100')">⭐ 5</button></div>
@@ -343,7 +343,7 @@
             </div>
             <div id="shop-section-debt" class="shop-section" style="overflow-y:auto;flex:1;display:none;"><h4 style="color:#ff6666;margin-bottom:10px;" data-i18n="debt_title">Кредит у Братвы</h4><p style="color:#ff4444;margin-bottom:10px;" data-i18n="debt_desc">Верни с процентами, или попадёшь на счётчик.</p><div id="debt-calculator"><div style="margin-bottom:15px;"><label for="debt-range" style="display:block;margin-bottom:5px;color:#ffd700;"><span data-i18n="debt_amount_label">Сумма займа:</span> <span id="debt-amount-display">100</span> 💵</label><input type="range" id="debt-range" min="100" max="50000" value="100" step="100" oninput="updateDebtCalculator()" style="width:100%;"></div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><span data-i18n="debt_get_label">Ты получишь:</span> <b id="debt-get">100</b> 💵</span><span><span data-i18n="debt_return_label">К возврату:</span> <b id="debt-return">110</b> 💵</span></div><div style="margin-bottom:10px;"><span><span data-i18n="debt_rate_label">Ставка:</span> <b id="debt-percent">10</b>%</span><span style="margin-left:15px;" data-i18n="debt_term_label">Срок: 24 часа</span></div><button id="btn-take-debt" onclick="takeDebtNew()" style="background:#ffd700;color:#1a1a1a;border:none;padding:12px;border-radius:20px;font-weight:bold;width:100%;font-size:16px;" data-i18n="debt_take_btn">Занять</button></div><div id="debt-status-container" class="debt-item" style="display:none;margin-top:15px;padding:10px;border-radius:12px;text-align:center;"><div id="debt-info" style="color:#ff6666;margin-bottom:10px;"></div><div id="debt-timer" style="color:#ffd700;font-size:14px;margin-bottom:10px;"></div><button id="btn-repay-debt" onclick="repayDebt()" style="background:#ffd700;color:#1a1a1a;border:none;padding:12px;border-radius:20px;font-weight:bold;width:100%;font-size:16px;display:none;" data-i18n="debt_repay_btn">Вернуть долг</button><button id="btn-repay-coins" onclick="repayDebtWithCoins()" style="background:#ffaa00;color:#1a1a1a;border:none;padding:10px;border-radius:15px;font-weight:bold;width:100%;margin-top:8px;display:none;" data-i18n="debt_repay_coins_btn">Погасить монетами</button><span id="debt-penalty-warning" style="color:red;display:none;margin-top:5px;" data-i18n="debt_penalty_warning">ПРОСРОЧКА! Ты на счётчике!</span></div></div>
         </div>
-        <div id="panel-leaderboard" class="panel"><h3 data-i18n="leaderboard_title">Братва</h3><div class="shop-tabs"><button class="shop-tab active" onclick="switchLeaderboardTab('top')" data-i18n="leaderboard_tab_top">Топ</button><button class="shop-tab" onclick="switchLeaderboardTab('safe')" data-i18n="leaderboard_tab_safe">Сейф</button></div><div id="leaderboard-section-top" class="leaderboard-section" style="overflow-y:auto;flex:1;"><ul class="leaderboard-list"><li><span>$BROKIE_King</span><span>1 250 000</span><button onclick="showProfile('$BROKIE_King')" data-i18n="leaderboard_profile_btn">Досье</button></li><li><span>CryptoFrog</span><span>980 000</span><button onclick="showProfile('CryptoFrog')" data-i18n="leaderboard_profile_btn">Досье</button></li><li><span>HoodMoney</span><span>820 000</span><button onclick="showProfile('HoodMoney')" data-i18n="leaderboard_profile_btn">Досье</button></li></ul><div class="player-rank-card"><div class="rank-title" data-i18n="leaderboard_your_rank_top">Твоё место в Топе</div><div><span data-i18n="leaderboard_position_label">Позиция:</span> <b id="player-top-rank">...</b></div><div><span data-i18n="leaderboard_balance_label">Баланс:</span> <b id="player-top-coins">0</b></div><div class="rank-psycho" id="top-psycho-text"></div></div></div><div id="leaderboard-section-safe" class="leaderboard-section" style="display:none;overflow-y:auto;flex:1;"><ul class="leaderboard-list"><li><span>BigBoss</span><span>12 500</span><button onclick="showProfile('BigBoss')" data-i18n="leaderboard_profile_btn">Досье</button></li><li><span>CashKing</span><span>8 200</span><button onclick="showProfile('CashKing')" data-i18n="leaderboard_profile_btn">Досье</button></li><li><span>MoneyFrog</span><span>5 100</span><button onclick="showProfile('MoneyFrog')" data-i18n="leaderboard_profile_btn">Досье</button></li></ul><div class="player-rank-card"><div class="rank-title" data-i18n="leaderboard_your_rank_safe">Твоё место в Сейфе</div><div><span data-i18n="leaderboard_position_label">Позиция:</span> <b id="player-safe-rank">...</b></div><div><span data-i18n="leaderboard_spent_label">Потрачено Нала:</span> <b id="player-safe-cash">0</b></div><div class="rank-psycho" id="safe-psycho-text"></div></div></div></div>
+        <div id="panel-leaderboard" class="panel"><h3 data-i18n="leaderboard_title">Братва</h3><div class="shop-tabs"><button class="shop-tab active" onclick="switchLeaderboardTab('top')" data-i18n="leaderboard_tab_top">Топ</button><button class="shop-tab" onclick="switchLeaderboardTab('safe')" data-i18n="leaderboard_tab_safe">Сейф</button></div><div id="leaderboard-section-top" class="leaderboard-section" style="overflow-y:auto;flex:1;"><div class="player-rank-card"><div class="rank-title" data-i18n="leaderboard_your_rank_top">Твоё место в Топе</div><div><span data-i18n="leaderboard_position_label">Позиция:</span> <b id="player-top-rank">...</b></div><div><span data-i18n="leaderboard_balance_label">Баланс:</span> <b id="player-top-coins">0</b></div><div class="rank-psycho" id="top-psycho-text"></div></div></div><div id="leaderboard-section-safe" class="leaderboard-section" style="display:none;overflow-y:auto;flex:1;"><div class="player-rank-card"><div class="rank-title" data-i18n="leaderboard_your_rank_safe">Твоё место в Сейфе</div><div><span data-i18n="leaderboard_position_label">Позиция:</span> <b id="player-safe-rank">...</b></div><div><span data-i18n="leaderboard_spent_label">Потрачено Нала:</span> <b id="player-safe-cash">0</b></div><div class="rank-psycho" id="safe-psycho-text"></div></div></div></div>
         <div id="panel-season" class="panel" style="overflow:hidden;"><h3 data-i18n="season_title">Босс-Сезон • Боевой Пропуск</h3><div id="vip-button-area" style="text-align:center;margin-bottom:15px;"></div><div id="season-progress-container"><div style="display:flex;justify-content:space-between;color:#ffd700;font-size:12px;"><span><span data-i18n="level_short">Ур.</span> <b id="season-current-lvl">0</b></span><span><span data-i18n="level_short">Ур.</span> <b id="season-next-lvl">1</b></span></div><div style="width:100%;height:18px;background:#222;border-radius:12px;overflow:hidden;border:1px solid #444;"><div id="season-horizontal-fill"></div></div></div><div class="season-headers"><span style="color:#aaa;" data-i18n="season_header_free">FREE</span><span style="width:40px;"></span><span style="color:#ffd700;" data-i18n="season_header_vip">VIP</span></div><div id="season-scroll-container"><div class="season-col" id="season-free-col"></div><div class="season-col" id="season-vip-col"></div></div><p style="text-align:center;color:#aaa;margin-top:10px;" data-i18n="season_progress_hint">Прогресс растёт при использовании Пыли</p></div>
         <div id="panel-district" class="panel" style="overflow-y:auto; padding:20px;">
             <div class="district-panel-bg">
@@ -586,7 +586,6 @@ function initDistrict() {
     localStorage.setItem('brokie_district_type', districtType);
   }
   
-  // Номер основателя теперь выдаёт сервер
   const savedFounder = parseInt(localStorage.getItem('brokie_founder_number') || '0');
   districtFounderNumber = savedFounder > 0 ? savedFounder : null;
 
@@ -931,9 +930,9 @@ function playSound(file) { try { new Audio('sounds/' + file).play().catch(() => 
 
 // ---------- 7. SHARING ----------
 function shareReferralLink() {
-  if (!isTelegram) { alert(t('alert_tg_only')); return; }
+  if (!isTelegram) { alert('Открой игру через Telegram, чтобы приглашать друзей!'); return; }
   const refLink = `https://t.me/${BOT_USERNAME}?start=${myUid || playerId}`;
-  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(t('ref_share_text'))}`;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Залетай на район, братан! $BROKIE')}`;
   tg.openTelegramLink(shareUrl);
   updateDailyQuest('friend');
 }
